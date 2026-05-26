@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The GitHub Creator Personality Test</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- html2canvas for screenshots -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ghBg: '#0d1117',
+                        ghCard: '#161b22',
+                        ghBorder: '#30363d',
+                        ghPrimary: '#2f81f7',
+                        ghSuccess: '#238636',
+                        ghText: '#c9d1d9',
+                        ghMuted: '#8b949e',
+                        ghPurple: '#a371f7'
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
+        }
+        .glass-panel {
+            background: rgba(22, 27, 34, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid #30363d;
+        }
+        .option-card:hover {
+            border-color: #2f81f7;
+            background-color: rgba(47, 129, 247, 0.1);
+            transform: translateY(-2px);
+        }
+        .option-card {
+            transition: all 0.2s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Data Definitions ---
+
+        const dimensions = [
+            { id: 'collaboration', keys: ['S', 'O'] },
+            { id: 'problemSolving', keys: ['D', 'C'] },
+            { id: 'workflow', keys: ['M', 'B'] },
+            { id: 'motivation', keys: ['F', 'V'] }
+        ];
+
+        const questions = [
+            // Phase 1
+            {
+                id: 1, phase: "Phase 1: The Spark", text: "You decide to learn a brand new skill (like video editing or baking). How do you start?",
+                options: [
+                    { text: "Lock myself in my room, watch tutorials, and don't show anyone until I'm actually good at it.", value: "S", dim: "collaboration" },
+                    { text: "Tell my friends immediately, post my messy first attempts online, and ask for advice.", value: "O", dim: "collaboration" }
+                ]
+            },
+            // Phase 2
+            {
+                id: 2, phase: "Phase 2: The Plan", text: "You are planning a weekend trip with your friends. What does the itinerary look like?",
+                options: [
+                    { text: "A clear, step-by-step schedule. We know where we are eating, when we are leaving, and we stick to the plan.", value: "M", dim: "workflow" },
+                    { text: "A rough idea of the destination, but we leave plenty of room to take random detours and see what happens.", value: "B", dim: "workflow" }
+                ]
+            },
+            // Phase 3
+            {
+                id: 3, phase: "Phase 3: The Obstacle", text: "You are assembling a complicated piece of IKEA furniture, and the pieces just aren't fitting together.",
+                options: [
+                    { text: "Take a step back, look at the manual, and talk myself through the steps out loud until I spot the mistake.", value: "D", dim: "problemSolving" },
+                    { text: "Immediately pull out my phone, search YouTube, or ask an AI for a quick fix or video walkthrough.", value: "C", dim: "problemSolving" }
+                ]
+            },
+            // Phase 4
+            {
+                id: 4, phase: "Phase 4: The Process", text: "You are cleaning your room or organizing your workspace.",
+                options: [
+                    { text: "I finish one area completely (like the desk) before moving to the next.", value: "M", dim: "workflow" },
+                    { text: "I find an old book while cleaning, start reading it, decide to reorganize my bookshelf, and suddenly the whole room is a new project.", value: "B", dim: "workflow" }
+                ]
+            },
+            // Phase 5
+            {
+                id: 5, phase: "Phase 5: The Communication", text: "You are writing an important email or post and just can't find the right words.",
+                options: [
+                    { text: "Go for a quick walk to clear my head; the right phrasing will come to me naturally.", value: "D", dim: "problemSolving" },
+                    { text: "Drop my messy thoughts into an AI tool and ask it to 'make this sound professional.'", value: "C", dim: "problemSolving" }
+                ]
+            },
+            // Phase 6
+            {
+                id: 6, phase: "Phase 6: The Unexpected", text: "You are working from a coffee shop and the Wi-Fi goes down. What is your reaction?",
+                options: [
+                    { text: "Perfect. Put on noise-canceling headphones and finally do some deep, uninterrupted work.", value: "S", dim: "collaboration" },
+                    { text: "Strike up a conversation with the person next to me or text my group chat about the outage.", value: "O", dim: "collaboration" }
+                ]
+            },
+            // Phase 7
+            {
+                id: 7, phase: "Phase 7: The Tools", text: "When you buy a new gadget or download a new app, what do you care about most?",
+                options: [
+                    { text: "How smoothly it runs, the battery life, and the practical features. It needs to work perfectly.", value: "F", dim: "motivation" },
+                    { text: "The UI design, the aesthetic, and how fun it is to use. It needs to look and feel amazing.", value: "V", dim: "motivation" }
+                ]
+            },
+            // Phase 8
+            {
+                id: 8, phase: "Phase 8: The Delivery", text: "You are cooking a meal for your friends. What is your primary goal?",
+                options: [
+                    { text: "Getting the recipe exactly right, ensuring everything is cooked safely, and serving it on time.", value: "F", dim: "motivation" },
+                    { text: "The presentation, the vibe of the dinner table, and making sure everyone takes a great photo of the food.", value: "V", dim: "motivation" }
+                ]
+            },
+            // Phase 9
+            {
+                id: 9, phase: "Phase 9: Energy", text: "You just finished a project you are really proud of. What’s your first move?",
+                options: [
+                    { text: "Quietly save it, feel a sense of personal satisfaction, and move on to the next thing.", value: "S", dim: "collaboration" },
+                    { text: "Instantly send it to the group chat, post it online, or ask people, 'What do you think?!'", value: "O", dim: "collaboration" }
+                ]
+            },
+            // Phase 10
+            {
+                id: 10, phase: "Phase 10: Deep Dive", text: "You have to read a massive, 20-page document or manual to understand how something works.",
+                options: [
+                    { text: "I grab a coffee, sit down, and read through it carefully, taking my own notes.", value: "D", dim: "problemSolving" },
+                    { text: "I feed the document into an AI tool and ask it to 'summarize the top 5 key points.'", value: "C", dim: "problemSolving" }
+                ]
+            },
+            // Phase 11
+            {
+                id: 11, phase: "Phase 11: The Environment", text: "Take a look at your computer desktop or your digital files right now. What does it look like?",
+                options: [
+                    { text: "Neat folders, clear naming conventions, everything in its proper place.", value: "M", dim: "workflow" },
+                    { text: "A beautiful disaster of screenshots, files named 'final_final_v2', and random downloads.", value: "B", dim: "workflow" }
+                ]
+            },
+            // Phase 12
+            {
+                id: 12, phase: "Phase 12: Motivation", text: "You are giving a presentation to your team. What are you most stressed about getting right?",
+                options: [
+                    { text: "The data and the facts. The numbers need to be 100% accurate and logically sound.", value: "F", dim: "motivation" },
+                    { text: "The slides and the story. The presentation needs to look beautiful and keep people engaged.", value: "V", dim: "motivation" }
+                ]
+            }
+        ];
+
+        const archetypes = {
+            "AI_VISIONARY": {
+                name: "The AI Visionary",
+                image: "https://github.com/user-attachments/assets/4500bc70-359c-466e-9e23-f6501a4b0dba",
+                description: "Fast, forward-thinking, and obsessed with the big picture. You don't have time for the boring, repetitive tasks. You use AI and modern tools to bypass the blockades and jump straight to the magic. You live in the future, and your ideas are always one step ahead.",
+                color: "text-cyan-400",
+                bgGradient: "from-cyan-900 to-blue-900"
+            },
+            "ZEN_DEBUGGER": {
+                name: "The Zen Debugger",
+                image: "https://github.com/user-attachments/assets/dba1477c-e986-4e77-925c-626ff743b739",
+                description: "Patient, logical, and highly reliable. When everything is breaking down, people look to you. You solve problems by taking a breath, breaking things down step-by-step, and talking it out. You are the anchor of sanity in a chaotic world.",
+                color: "text-teal-400",
+                bgGradient: "from-teal-900 to-emerald-900"
+            },
+            "OPEN_SOURCE_EXPLORER": {
+                name: "The Open-Source Explorer",
+                image: "https://github.com/user-attachments/assets/21c7f1cf-83b8-4855-8e92-c7b279cfdfd8",
+                description: "Adventurous, creative, and endlessly collaborative! You love jumping into new projects, sharing your ideas freely, and taking creative detours. You believe that the best ideas come from bouncing thoughts off other people.",
+                color: "text-yellow-400",
+                bgGradient: "from-yellow-700 to-orange-900"
+            },
+            "AUTOMATION_ARCHITECT": {
+                name: "The Automation Architect",
+                image: "https://github.com/user-attachments/assets/a434a204-5029-4217-b780-3db8ef90a803",
+                description: "Solo, structured, and incredibly efficient. You like things to function perfectly. Instead of doing a chore twice, you will spend hours building a system that does it for you automatically. You are the master of optimizing your own life.",
+                color: "text-green-400",
+                bgGradient: "from-green-900 to-emerald-900"
+            },
+            "CHAOTIC_GENIUS": {
+                name: "The Chaotic Genius",
+                image: "https://github.com/user-attachments/assets/2e696c7a-baf0-42ba-a69c-5220d531fb2a",
+                description: "You thrive in creative chaos! You use modern shortcuts to chase sudden bursts of inspiration, even if it means leaving three other projects unfinished. Your process might look messy to outsiders, but the results are always undeniably brilliant.",
+                color: "text-fuchsia-400",
+                bgGradient: "from-fuchsia-900 to-purple-900"
+            },
+            "COMMUNITY_BUILDER": {
+                name: "The Community Builder",
+                image: "https://github.com/user-attachments/assets/c9220bb0-cff3-4ad9-b035-52fc1a3f2b01",
+                description: "You are the glue that holds the team together. You value harmony, clear plans, and making sure everyone's ideas are heard and executed beautifully. You want the things you build to make people feel good, not just work well.",
+                color: "text-orange-400",
+                bgGradient: "from-orange-800 to-red-900"
+            },
+            "SPEEDRUNNER": {
+                name: "The Speedrunner",
+                image: "https://github.com/user-attachments/assets/fc160ea2-3ac8-4c91-9d66-bfd184f256cc",
+                description: "You are all about maximum efficiency and getting things done now. You follow the master plan, use the fastest tools available, and always cross the finish line first. You don't get distracted by side quests; you are here to win.",
+                color: "text-blue-400",
+                bgGradient: "from-blue-900 to-indigo-900"
+            },
+            "DEEP_DIVE_CRAFTER": {
+                name: "The Deep-Dive Crafter",
+                image: "https://github.com/user-attachments/assets/75d0d1dc-a3f4-4312-ba23-674537dd52ce",
+                description: "You are a meticulous artisan. You love getting lost in the details, figuring things out manually, and making sure the final product is a flawless masterpiece. You take deep pride in the craft, and you never cut corners.",
+                color: "text-amber-600",
+                bgGradient: "from-amber-900 to-yellow-900"
+            }
+        };
+
+        // Logic Matrix mapping combinations to Archetypes
+        const getArchetype = (code) => {
+            const matrix = {
+                "SDMF": "DEEP_DIVE_CRAFTER",
+                "SDMV": "ZEN_DEBUGGER",
+                "SDBF": "DEEP_DIVE_CRAFTER",
+                "SDBV": "CHAOTIC_GENIUS",
+                "SCMF": "AUTOMATION_ARCHITECT",
+                "SCMV": "SPEEDRUNNER",
+                "SCBF": "AUTOMATION_ARCHITECT",
+                "SCBV": "AI_VISIONARY",
+                "ODMF": "ZEN_DEBUGGER",
+                "ODMV": "COMMUNITY_BUILDER",
+                "ODBF": "OPEN_SOURCE_EXPLORER",
+                "ODBV": "OPEN_SOURCE_EXPLORER",
+                "OCMF": "SPEEDRUNNER",
+                "OCMV": "COMMUNITY_BUILDER",
+                "OCBF": "CHAOTIC_GENIUS",
+                "OCBV": "AI_VISIONARY"
+            };
+            return archetypes[matrix[code]];
+        };
+
+        // --- Components ---
+
+        const App = () => {
+            const [gameState, setGameState] = useState('welcome'); // welcome, quiz, analyzing, result
+            const [currentQuestion, setCurrentQuestion] = useState(0);
+            const [answers, setAnswers] = useState({
+                collaboration: [],
+                problemSolving: [],
+                workflow: [],
+                motivation: []
+            });
+            const [finalResult, setFinalResult] = useState(null);
+
+            const startQuiz = () => {
+                setGameState('quiz');
+                setCurrentQuestion(0);
+                setAnswers({ collaboration: [], problemSolving: [], workflow: [], motivation: [] });
+            };
+
+            const handleAnswer = (dim, value) => {
+                const newAnswers = { ...answers };
+                newAnswers[dim].push(value);
+                setAnswers(newAnswers);
+
+                if (currentQuestion < questions.length - 1) {
+                    setCurrentQuestion(currentQuestion + 1);
+                } else {
+                    calculateResult(newAnswers);
+                }
+            };
+
+            const calculateResult = (finalAnswers) => {
+                setGameState('analyzing');
+                
+                // Determine dominant trait for each dimension
+                const getDominant = (arr) => {
+                    const counts = {};
+                    arr.forEach(val => counts[val] = (counts[val] || 0) + 1);
+                    return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+                };
+
+                const code = 
+                    getDominant(finalAnswers.collaboration) +
+                    getDominant(finalAnswers.problemSolving) +
+                    getDominant(finalAnswers.workflow) +
+                    getDominant(finalAnswers.motivation);
+
+                setTimeout(() => {
+                    setFinalResult(getArchetype(code));
+                    setGameState('result');
+                }, 2500);
+            };
+
+            // Inject SVG Icons
+            useEffect(() => {
+                lucide.createIcons();
+            });
+
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden bg-ghBg">
+                    
+                    {/* Background Gradients */}
+                    <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-ghPrimary rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-pulse-slow"></div>
+                    <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-ghPurple rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-pulse-slow" style={{animationDelay: '1s'}}></div>
+
+                    <div className="w-full max-w-3xl z-10">
+                        {gameState === 'welcome' && <WelcomeScreen onStart={startQuiz} />}
+                        {gameState === 'quiz' && (
+                            <QuestionScreen 
+                                question={questions[currentQuestion]} 
+                                currentIdx={currentQuestion}
+                                total={questions.length}
+                                onAnswer={handleAnswer} 
+                            />
+                        )}
+                        {gameState === 'analyzing' && <LoadingScreen />}
+                        {gameState === 'result' && <ResultScreen result={finalResult} onRestart={startQuiz} />}
+                    </div>
+                </div>
+            );
+        };
+
+        const WelcomeScreen = ({ onStart }) => (
+            <div className="glass-panel rounded-2xl p-8 md:p-12 text-center shadow-2xl animate-fade-in border border-ghBorder">
+                <div className="flex justify-center mb-6">
+                    <i data-lucide="github" className="w-16 h-16 text-white"></i>
+                </div>
+                <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white tracking-tight">The GitHub Creator Personality Test</h1>
+                <p className="text-ghText text-lg md:text-xl mb-8 leading-relaxed max-w-2xl mx-auto">
+                    Are you an AI Visionary or an Open-Source Explorer? Discover your unique developer archetype based on how you plan, solve problems, and collaborate.
+                </p>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10 text-sm text-ghMuted">
+                    <div className="p-3 bg-ghCard rounded-lg border border-ghBorder"><i data-lucide="users" className="w-5 h-5 mx-auto mb-2 text-ghPrimary"></i> Collaboration</div>
+                    <div className="p-3 bg-ghCard rounded-lg border border-ghBorder"><i data-lucide="cpu" className="w-5 h-5 mx-auto mb-2 text-ghSuccess"></i> Problem Solving</div>
+                    <div className="p-3 bg-ghCard rounded-lg border border-ghBorder"><i data-lucide="git-merge" className="w-5 h-5 mx-auto mb-2 text-ghPurple"></i> Workflow</div>
+                    <div className="p-3 bg-ghCard rounded-lg border border-ghBorder"><i data-lucide="zap" className="w-5 h-5 mx-auto mb-2 text-yellow-500"></i> Motivation</div>
+                </div>
+
+                <button 
+                    onClick={onStart}
+                    className="bg-ghSuccess hover:bg-[#2ea043] text-white font-semibold py-4 px-10 rounded-full text-lg transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center mx-auto"
+                >
+                    Start the Test <i data-lucide="arrow-right" className="ml-2 w-5 h-5"></i>
+                </button>
+            </div>
+        );
+
+        const QuestionScreen = ({ question, currentIdx, total, onAnswer }) => {
+            const progress = ((currentIdx) / total) * 100;
+            
+            return (
+                <div className="animate-fade-in w-full" key={question.id}>
+                    {/* Progress Bar */}
+                    <div className="mb-8">
+                        <div className="flex justify-end text-sm text-ghMuted mb-2 font-medium">
+                            <span>{currentIdx + 1} / {total}</span>
+                        </div>
+                        <div className="w-full bg-ghBorder rounded-full h-2.5">
+                            <div className="bg-ghPrimary h-2.5 rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%` }}></div>
+                        </div>
+                    </div>
+
+                    <div className="glass-panel rounded-2xl p-6 md:p-10 shadow-2xl border border-ghBorder">
+                        <h2 className="text-2xl md:text-3xl font-semibold mb-8 text-white leading-tight">
+                            {question.text}
+                        </h2>
+                        
+                        <div className="space-y-4">
+                            {question.options.map((opt, idx) => (
+                                <button 
+                                    key={idx}
+                                    onClick={() => onAnswer(opt.dim, opt.value)}
+                                    className="option-card w-full text-left p-5 md:p-6 bg-ghCard border border-ghBorder rounded-xl text-ghText text-lg hover:text-white flex items-start gap-4"
+                                >
+                                    <div className="mt-1 flex-shrink-0 w-6 h-6 rounded-full border-2 border-ghMuted flex items-center justify-center">
+                                        <span className="text-xs font-bold">{idx === 0 ? 'A' : 'B'}</span>
+                                    </div>
+                                    <span className="leading-relaxed">{opt.text}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const LoadingScreen = () => (
+            <div className="text-center animate-fade-in py-20">
+                <div className="relative w-24 h-24 mx-auto mb-8">
+                    <div className="absolute inset-0 border-4 border-ghBorder rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-ghPrimary rounded-full border-t-transparent animate-spin"></div>
+                    <i data-lucide="github" className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-10 h-10 text-white"></i>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Analyzing your GitHub Matrix...</h3>
+                <p className="text-ghMuted">Compiling your workflow traits, problem-solving habits, and creative drive...</p>
+            </div>
+        );
+
+        const ResultScreen = ({ result, onRestart }) => {
+            const resultRef = useRef(null);
+            const [isCapturing, setIsCapturing] = useState(false);
+
+            // Function to handle missing images gracefully
+            const handleImageError = (e) => {
+                e.target.style.display = 'none';
+                e.target.nextElementSibling.style.display = 'flex';
+            };
+
+            const handleShare = async () => {
+                if (!resultRef.current || !window.html2canvas) return;
+                setIsCapturing(true);
+                
+                try {
+                    // Hide buttons temporarily so they don't show up in the screenshot
+                    const buttonsDiv = resultRef.current.querySelector('.action-buttons');
+                    if (buttonsDiv) buttonsDiv.style.display = 'none';
+
+                    // Capture the result card
+                    const canvas = await window.html2canvas(resultRef.current, {
+                        useCORS: true,
+                        scale: 2, // Double resolution for sharper image
+                        backgroundColor: '#0d1117' // Match app background
+                    });
+                    
+                    // Restore buttons
+                    if (buttonsDiv) buttonsDiv.style.display = 'flex';
+
+                    // Convert to image and trigger download
+                    const dataUrl = canvas.toDataURL('image/png');
+                    const link = document.createElement('a');
+                    link.download = `${result.name.replace(/[^a-zA-Z0-9]/g, '_')}_Archetype.png`;
+                    link.href = dataUrl;
+                    link.click();
+                } catch (error) {
+                    console.error("Screenshot failed:", error);
+                    alert("Oops! Couldn't generate the screenshot.");
+                    const buttonsDiv = resultRef.current.querySelector('.action-buttons');
+                    if (buttonsDiv) buttonsDiv.style.display = 'flex';
+                }
+                
+                setIsCapturing(false);
+            };
+
+            return (
+                <div className="animate-slide-up w-full">
+                    <div ref={resultRef} className={`glass-panel rounded-3xl overflow-hidden shadow-2xl border border-ghBorder bg-gradient-to-b ${result.bgGradient} bg-opacity-10`}>
+                        
+                        {/* Image Container */}
+                        <div className="relative w-full aspect-video bg-black/50 border-b border-ghBorder">
+                            <img 
+                                src={result.image} 
+                                alt={result.name}
+                                onError={handleImageError}
+                                className="w-full h-full object-cover"
+                            />
+                            {/* Fallback if image not found */}
+                            <div className="hidden absolute inset-0 flex-col items-center justify-center bg-ghCard text-ghMuted">
+                                <i data-lucide="image-off" className="w-12 h-12 mb-2"></i>
+                                <p>Image artifact ({result.image}) missing</p>
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-8 md:p-10 text-center">
+                            <h4 className="text-sm uppercase tracking-widest text-ghMuted mb-2 font-semibold">Your Creator Archetype</h4>
+                            <h2 className={`text-4xl md:text-5xl font-extrabold mb-6 ${result.color} drop-shadow-md`}>
+                                {result.name}
+                            </h2>
+                            <p className="text-lg md:text-xl text-gray-300 leading-relaxed max-w-2xl mx-auto mb-10">
+                                {result.description}
+                            </p>
+
+                            <div className="action-buttons flex flex-col sm:flex-row gap-4 justify-center">
+                                <button 
+                                    onClick={onRestart}
+                                    className="bg-ghCard border border-ghBorder text-white font-semibold py-3 px-8 rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center"
+                                >
+                                    <i data-lucide="rotate-ccw" className="w-5 h-5 mr-2"></i> Retake Test
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
